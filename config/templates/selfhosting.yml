@@ -89,6 +89,10 @@ services:
     - "SPRING_RABBITMQ_ADDRESSES=amqp://guest:guest@rabbitmq"
     # Need a bigger memory size or any other custom JVM args? Uncomment and edit the line below accordingly
     #entrypoint: java -Xmx512m -jar sentinel.jar
+    logging:
+      options:
+        max-size: "1g"
+        max-file: "1"
 
   ################################################################################
   ##                     Quarterdeck (Database Backend)
