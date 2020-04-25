@@ -95,6 +95,7 @@ class SimpleTrackProvider : AbstractTrackProvider() {
         if (repeatMode == RepeatMode.ALL && lastTrack != null) {
             //add a fresh copy of the last track back to the queue, if the queue is being repeated
             val clone = lastTrack!!.makeClone()
+            clone.isPriority = false
             if (isShuffle) {
                 clone.rand = Integer.MAX_VALUE //put it at the back of the shuffled queue
                 shouldUpdateShuffledQueue = true
