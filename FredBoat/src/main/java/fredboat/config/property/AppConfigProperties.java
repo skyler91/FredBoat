@@ -49,6 +49,7 @@ public class AppConfigProperties implements AppConfig {
     private boolean restServerEnabled = false;
     private List<Long> botAdmins = new ArrayList<>();
     private List<Long> botOwners = new ArrayList<>();
+    private List<Long> allowedBots = new ArrayList<>();
     private boolean autoBlacklist = true;
     private String game = "";
     private boolean continuePlayback = false;
@@ -85,6 +86,9 @@ public class AppConfigProperties implements AppConfig {
     public List<Long> getOwnerIds() {
         return botOwners;
     }
+
+    @Override
+    public List<Long> getAllowedBots() { return allowedBots; }
 
     @Override
     public boolean useAutoBlacklist() {
@@ -140,6 +144,8 @@ public class AppConfigProperties implements AppConfig {
     public void setBotOwners(List<Long> botOwners) {
         this.botOwners = botOwners;
     }
+
+    public void setAllowedBots(List<Long> allowedBots) { this.allowedBots = allowedBots; }
 
     public void setAutoBlacklist(boolean autoBlacklist) {
         this.autoBlacklist = autoBlacklist;

@@ -70,6 +70,8 @@ public interface AppConfig {
 
     int getPlayerLimit();
 
+    List<Long> getAllowedBots();
+
     /**
      * @return empty string for default status
      */

@@ -146,13 +146,17 @@ class CommandContextParser(
             log.info("Skyler: parse getting event author (" + event.author.toString()+ ")")
             var authorId = event.author
             // TODO: Pull this value from config file!!
-            if (event.fromBot && event.author == 704893913982566460)
+            if (event.fromBot && appConfig.allowedBots.contains(event.author))
             {
-                log.info("Received a command from the webhook!")
+                log.info("Received a command from bot " + event.author.toString() + "!")
                 val authorIdFromBot = getUserIdFromBotMessage(content)
                 if (authorIdFromBot > 0)
                 {
                     authorId = authorIdFromBot
+                }
+                else
+                {
+                    log.error("Bot message did not contain a valid user id")
                 }
             }
             log.info("Skyler: parse checking guild membership...")
