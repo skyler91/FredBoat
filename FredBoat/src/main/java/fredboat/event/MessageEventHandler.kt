@@ -78,22 +78,26 @@ class MessageEventHandler(
     }
 
     override fun onGuildMessage(event: MessageReceivedEvent) {
+        log.info("Skyler: In onGuildMessage...")
         if (ratelimiter.isBlacklisted(event.author)) {
             Metrics.blacklistedMessagesReceived.inc()
             return
         }
 
         if (sentinel.selfUser.id == event.author) log.info(if(event.content.isBlank()) "<empty>" else event.content)
-        if (event.fromBot) return
+        // if (event.fromBot) return
 
         //Preliminary permission filter to avoid a ton of parsing
         //Let messages pass on to parsing that contain "help" since we want to answer help requests even from channels
         // where we can't talk in
+        log.info("Skyler: checking permissions...")
         val permissions = PermissionSet(event.channelPermissions)
         if (permissions hasNot (MESSAGE_READ + MESSAGE_WRITE)
                 && !event.content.contains(CommandInitializer.HELP_COMM_NAME)) return
+        log.info("Skyler: Launching GlobalScope")
 
         GlobalScope.launch {
+            log.info("Skyler: getting context")
             val context = commandContextParser.parse(event) ?: return@launch
 
             // Renew the time to prevent invalidation
@@ -105,6 +109,7 @@ class MessageEventHandler(
                 log.info("Ignoring command {} because this bot cannot write in that channel", context.command.name)
                 return@launch
             }
+            log.info("Skyler: not ignoring command...")
 
             Metrics.commandsReceived.labels(context.command.javaClass.simpleName).inc()
 
@@ -119,6 +124,7 @@ class MessageEventHandler(
                         context.command.name, module.name)
                 return@launch
             }
+            log.info("Skyler: executing command!")
 
             limitOrExecuteCommand(context)
         }
