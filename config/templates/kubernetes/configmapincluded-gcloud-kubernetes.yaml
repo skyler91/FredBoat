@@ -1,0 +1,846 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    com.centurylinklabs.watchtower.enable: "true"
+  labels:
+    io.kompose.service: bot
+  name: bot
+spec:
+  ports:
+  - name: "1356"
+    port: 1356
+    targetPort: 1356
+  selector:
+    io.kompose.service: bot
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    com.centurylinklabs.watchtower.enable: "true"
+  labels:
+    io.kompose.service: lavalink
+  name: lavalink
+spec:
+  ports:
+  - name: "2333"
+    port: 2333
+    targetPort: 2333
+  selector:
+    io.kompose.service: lavalink
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    com.centurylinklabs.watchtower.enable: "true"
+  labels:
+    io.kompose.service: quarterdeck
+  name: quarterdeck
+spec:
+  ports:
+  - name: "4269"
+    port: 4269
+    targetPort: 4269
+  selector:
+    io.kompose.service: quarterdeck
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    com.centurylinklabs.watchtower.enable: "true"
+  labels:
+    io.kompose.service: rabbitmq
+  name: rabbitmq
+spec:
+  ports:
+  - name: "5672"
+    port: 5672
+    targetPort: 5672
+  - name: "15672"
+    port: 15672
+    targetPort: 15672
+  selector:
+    io.kompose.service: rabbitmq
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  labels:
+    io.kompose.service: db
+spec:
+  type: NodePort
+  ports:
+    - port: 5432
+  selector:
+    io.kompose.service: db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    com.centurylinklabs.watchtower.enable: "true"
+  labels:
+    io.kompose.service: db
+  name: db
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: db
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: db
+    spec:
+      containers:
+      - image: fredboat/postgres:latest
+        name: db
+        ports:
+          - containerPort: 5432
+        resources: {}
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: db-claim0
+      restartPolicy: Always
+      volumes:
+      - name: db-claim0
+        persistentVolumeClaim:
+          claimName: db-claim0
+status: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    com.centurylinklabs.watchtower.enable: "true"
+  labels:
+    io.kompose.service: lavalink
+  name: lavalink
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: lavalink
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: lavalink
+    spec:
+      containers:
+      - command:
+        - java
+        - -Xmx128m
+        - -jar
+        - Lavalink.jar
+        image: fredboat/lavalink:master
+        name: lavalink
+        ports:
+        - containerPort: 2333
+        resources: {}
+        volumeMounts:
+        - mountPath: /opt/Lavalink/application.yaml
+          name: lavalink-config
+          subPath: lavalink.yml
+        - mountPath: /opt/Lavalink/logs
+          name: lavalink-claim0
+      restartPolicy: Always
+      volumes:
+      - name: lavalink-config
+        configMap:
+          name: fredboat-lavalink-yml
+      - name: lavalink-claim0
+        persistentVolumeClaim:
+          claimName: lavalink-claim0
+status: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    com.centurylinklabs.watchtower.enable: "true"
+  labels:
+    io.kompose.service: quarterdeck
+  name: quarterdeck
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: quarterdeck
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: quarterdeck
+    spec:
+      containers:
+      - command:
+        - java
+        - -Xmx128m
+        - -jar
+        - Quarterdeck.jar
+        - |
+          --spring.application.json={"security": {"admins": [{"name": "docker", "pass": "docker"}]}}
+        image: fredboat/quarterdeck:stable-v1
+        name: quarterdeck
+        ports:
+        - containerPort: 4269
+        resources: {}
+        volumeMounts:
+        - mountPath: /opt/Quarterdeck/quarterdeck.yaml
+          name: quarterdeck-config
+          subPath: quarterdeck.yml
+        - mountPath: /opt/Quarterdeck/logs
+          name: quarterdeck-claim0
+      restartPolicy: Always
+      volumes:
+      - name: quarterdeck-config
+        configMap:
+          name: fredboat-quarterdeck-yml
+      - name: quarterdeck-claim0
+        persistentVolumeClaim:
+          claimName: quarterdeck-claim0
+status: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    com.centurylinklabs.watchtower.enable: "true"
+  labels:
+    io.kompose.service: rabbitmq
+  name: rabbitmq
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: rabbitmq
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: rabbitmq
+    spec:
+      containers:
+      - image: rabbitmq:3-management
+        name: rabbitmq
+        ports:
+        - containerPort: 5672
+        - containerPort: 15672
+        resources: {}
+      restartPolicy: Always
+status: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    com.centurylinklabs.watchtower.enable: "true"
+  labels:
+    io.kompose.service: bot
+  name: bot
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: bot
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: bot
+    spec:
+      containers:
+      - image: skyler91/fredboat
+        name: bot
+        env:
+        - name: SPRING_RABBITMQ_ADDRESSES
+          value: amqp://guest:guest@rabbitmq
+        ports:
+          - containerPort: 1356
+        resources: {}
+        volumeMounts:
+        - mountPath: /opt/FredBoat/fredboat.yml
+          name: config-fredboat
+          subPath: fredboat.yml
+        - mountPath: /opt/FredBoat/common.yml
+          name: config-common
+          subPath: common.yml
+        - mountPath: /opt/FredBoat/logs
+          name: bot-claim0
+        - mountPath: /opt/FredBoat/music_persistence
+          name: bot-claim1
+      restartPolicy: Always
+      volumes:
+      - name: config-fredboat
+        configMap:
+          name: fredboat-yml
+      - name: config-common
+        configMap:
+          name: fredboat-common-yml
+      - name: bot-claim0
+        persistentVolumeClaim:
+          claimName: bot-claim0
+      - name: bot-claim1
+        persistentVolumeClaim:
+          claimName: bot-claim1
+status: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    com.centurylinklabs.watchtower.enable: "true"
+  labels:
+    io.kompose.service: sentinel
+  name: sentinel
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: sentinel
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: sentinel
+    spec:
+      containers:
+      - image: fredboat/sentinel:dev
+        name: sentinel
+        env:
+        - name: SPRING_RABBITMQ_ADDRESSES
+          value: amqp://guest:guest@rabbitmq
+        resources: {}
+        volumeMounts:
+        - mountPath: /opt/sentinel/logs
+          name: sentinel-claim0
+        - mountPath: /opt/sentinel/common.yml
+          name: config-common
+          subPath: common.yml
+      restartPolicy: Always
+      volumes:
+      - name: sentinel-claim0
+        persistentVolumeClaim:
+          claimName: sentinel-claim0
+      - name: config-common
+        configMap:
+          name: fredboat-common-yml
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    io.kompose.service: bot-claim0
+  name: bot-claim0
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    io.kompose.service: bot-claim1
+  name: bot-claim1
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    io.kompose.service: db-claim0
+  name: db-claim0
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    io.kompose.service: lavalink-claim0
+  name: lavalink-claim0
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    io.kompose.service: quarterdeck-claim0
+  name: quarterdeck-claim0
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    io.kompose.service: sentinel-claim0
+  name: sentinel-claim0
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+data:
+  fredboat.yml: |
+    ---
+    ################################################################
+    ###                    *** WARNING ***
+    ################################################################
+    ###
+    ### ALMOST EVERYTHING REQUESTED IN THIS FILE ARE CONFIDENTIAL CREDENTIALS
+    ### IF YOU POST THIS FILE ONLINE (such as on GitHub) YOUR BOT COULD BE COMPROMISED
+    ###
+    ###
+    ### Use a proper text editor when editing this file, for example Sublime.
+    ### Do not use tab characters in this file, use plain spaces.
+    ###
+    ### Keep at least one space after a colon, like so:
+    ###
+    ###   key: value
+    ###
+    ###
+    ### Never edit or add a value to lines that have no default value, like:
+    ###
+    ###   credentials:
+    ###
+    ### Just leave them be. A default value may be an empty string like so: ""
+    ###
+    ###
+    ### You can wrap most values into quotation marks, except numbers and booleans:
+    ###
+    ###   someUrl: "http://example.com"
+    ###   someToken: "123.qwe.456[DFG="
+    ###   somePortNumber: 22
+    ###   useSomeFeature: true
+    ###
+    ###
+    ### You can have a list of things like this:
+    ###
+    ###   listOfStrings: ["string1", "string2", "string3"]
+    ###
+    ### or like this:
+    ###
+    ###   listOfStrings:
+    ###     - "string1"
+    ###     - "string2"
+    ###     - "string3"
+    ###
+    ###
+    ### More information on correctly formatting yaml files: http://www.yaml.org/start.html
+
+
+    ################################################################
+    ###                 Basic configuration
+    ################################################################
+
+    config:
+      development:       false         # Set this to false for selfhosting. If you leave this enabled and complain about weird
+                                      # things happening to your bot in the selfhosting chat you will be publicly taunted.
+      prefix:            '!'         # Default prefix used by the bot
+      botAdmins:         []           # Add comma separated userIds and roleIds that should have access to bot admin commands. Find role ids with the ;;roleinfo command
+      botOwners:         []           # Add comma separated userIds that should have access to bot OWNER commands. Mainly intended for bots that belong to teams
+      allowedBots:       []           # Add comma separated botIds to accept commands from
+      autoBlacklist:     true         # Set to true to automatically blacklist users who frequently hit the rate limits
+      game:              ""           # Set the displayed game/status. Leave empty quote marks for the default status
+      continuePlayback:  false        # Set to true to force the player to continue playback even if left alone
+      shardCount: 1                   # The number of shards this bot supports. Leave at 1 unless you know what you are doing.
+    # ratelimit:
+    #   ipBlocks: ["127.0.0.1/31", "127.0.0.3/32", "..."] # list of ip blocks
+    #   excludedIps: ["...", "..."] # ips which should be explicit excluded from usage by lavalink
+    #   strategy: "RotateOnBan" # RotateOnBan | LoadBalance | NanoSwitch | RotatingNanoSwitch
+    #   searchTriggersFail: true # Whether a search 429 should trigger marking the ip as failing
+
+    server:
+      port: 1356                      # Change the port of the API FredBoat exposes
+    spring:
+      main:
+        web-application-type: none    # Set this to "servlet", "reactive" or "none", whichever ends up working, to enable/disable the FredBoat API.
+      output:
+        ansi:
+          enabled: detect             # for developers: setting this to "always" will force colored logs in your console
+
+
+    audio-sources:
+      enableYouTube:     true         # Set to true to enable playing YouTube links
+      enableSoundCloud:  true         # Set to true to enable playing SoundCloud links
+      enableBandCamp:    true         # Set to true to enable playing BandCamp links
+      enableTwitch:      true         # Set to true to enable playing Twitch links
+      enableVimeo:       true         # Set to true to enable playing Vimeo links
+      enableMixer:       true         # Set to true to enable playing Mixer links
+      enableSpotify:     true         # Set to true to enable playing Spotify links
+      enableLocal:       false        # Set to true to enable playing local files
+      enableHttp:        false        # Set to true to enable playing direct links
+
+
+    ################################################################
+    ###                 Essential credentials
+    ################################################################
+
+    backend:
+      quarterdeck:
+        # Host address of your quarterdeck backend, including port unless you are using a reverse proxy.
+        # Example: https://such.example.com:4269/
+        # No need set the host when running Quarterdeck in Docker.
+        host: ""
+        # Credentials used to authenticate to with Quarterdeck.
+        # By default Quarterdeck uses docker:docker when using our docker-compose files
+        user: "docker"
+        pass: "docker"
+
+
+    credentials:
+      # Used by the ;;split and ;;np commands. Must be hooked up to the Youtube Data API.
+      # You can add additional keys in case you are running a big bot
+      # How to get the key: https://developers.google.com/youtube/registering_an_application
+      # Add your google API key between the quotation marks
+      googleApiKeys:
+        - "API_KEY_HERE"
+
+      # The preferred way of setting the token is described in ./common.yml
+      #discordBotToken: ""
+
+
+
+    ################################################################
+    ###                     Optional APIs
+    ################################################################
+
+      # Used to access imgur galleries for some RandomImageCommands
+      # Acquired from here: https://api.imgur.com/oauth2/addclient
+      # Choose an option that does not require an Authorization callback URL
+      imgurClientId:  ""
+
+
+      # Used to retrieve Spotify playlists
+      # Get them from here: https://developer.spotify.com/my-applications
+      spotifyId:      ""
+      spotifySecret:  ""
+
+
+      # Used by ;;weather command.
+      # Get them from: http://openweathermap.org/appid
+      openWeatherKey: ""
+
+      # Error aggregation service https://sentry.io/
+      sentryDsn:      ""
+
+
+
+    event-logger:
+      # Webhooks to Discord channels that will post some guild stats and shard status changes
+      # More information on webhooks: https://support.discordapp.com/hc/en-us/articles/228383668-Intro-to-Webhooks
+      # Example: "https://canary.discordapp.com/api/webhooks/1234567890/QWERTZUIOPasdfghjklYXCVBNM" (no, this one will not work)
+      eventLogWebhook:            "" # webhook url for connect / disconnect events
+      eventLogInterval:           1  # interval at which connect / disconnect events are posted in minutes
+      guildStatsWebhook:          "" # webhook url for guild stats
+      guildStatsInterval:         60 # interval at which guild stats are posted in minutes
+
+
+    # Lavalink is used for playing music.
+    # More on Lavalink: https://github.com/Frederikam/Lavalink
+    # If fully commented out, FredBoat will automatically guess that Lavalink is hosted locally at port 2333
+    #lavalink:
+    #  nodes:
+    #    - name : "local"
+    #      host : "ws://localhost:2333"
+    #      pass : "youshallnotpass"
+    #    - name : "remote1"
+    #      host : "ws://192.168.1.20:5556"
+    #      pass : "youshallnotpass"
+    #    - name : "remote2"
+    #      host : "ws://lavalink.example.com:5557"
+    #      pass : "youshallnotpass"
+
+    # tune these according to your needs, or just leave them as is.
+    logging:
+      file:
+        max-history: 30
+        max-size: 1GB
+      path: ./logs/
+
+      level:
+        root: INFO
+        fredboat: DEBUG
+        com.fredboat: DEBUG
+        net.dv8tion: DEBUG
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2020-04-25T21:56:49Z"
+  managedFields:
+  - apiVersion: v1
+    manager: kubectl
+    operation: Update
+    time: "2020-04-25T21:56:49Z"
+  name: fredboat-yml
+  resourceVersion: "48471"
+  selfLink: /api/v1/namespaces/default/configmaps/fredboat-yml
+  uid: ba389ecb-c630-44a3-a39a-e02bdea45711
+---
+apiVersion: v1
+data:
+  common.yml: |
+    # Add your discord bot token below, between the quotation marks
+    # Find the token of your bot on https://discordapp.com/developers/applications/me
+    # Tutorial: https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token
+    discordToken: ""
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2020-04-25T21:55:59Z"
+  managedFields:
+  - apiVersion: v1
+    manager: kubectl
+    operation: Update
+    time: "2020-04-25T21:55:59Z"
+  name: fredboat-common-yml
+  resourceVersion: "48360"
+  selfLink: /api/v1/namespaces/default/configmaps/fredboat-common-yml
+  uid: ea9de5aa-c508-4c7b-8a9e-4a07818de0fc
+---
+apiVersion: v1
+data:
+  lavalink.yml: |
+    server: # REST server
+      port: 2333
+      address: 0.0.0.0
+    spring:
+      main:
+        banner-mode: log
+    lavalink:
+      server:
+        password: "youshallnotpass"
+        sources:
+          youtube: true
+          bandcamp: true
+          soundcloud: true
+          twitch: true
+          vimeo: true
+          mixer: true
+          http: true
+          local: false
+        bufferDurationMs: 400
+        youtubePlaylistLoadLimit: 600
+        gc-warnings: true
+
+    metrics:
+      prometheus:
+        enabled: false
+        endpoint: /metrics
+
+    sentry:
+      dsn: ""
+    #  tags:
+    #    some_key: some_value
+    #    another_key: another_value
+
+    logging:
+      file:
+        max-history: 30
+        max-size: 1GB
+      path: ./logs/
+
+      level:
+        root: INFO
+        lavalink: INFO
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2020-04-25T21:57:40Z"
+  managedFields:
+  - apiVersion: v1
+    manager: kubectl
+    operation: Update
+    time: "2020-04-25T21:57:40Z"
+  name: fredboat-lavalink-yml
+  resourceVersion: "48582"
+  selfLink: /api/v1/namespaces/default/configmaps/fredboat-lavalink-yml
+  uid: d232dcc8-d223-4775-b015-4ae1f4e0981c
+---
+apiVersion: v1
+data:
+  quarterdeck.yml: |
+    ---
+    ################################################################
+    ###                    *** WARNING ***
+    ################################################################
+    ###
+    ### ALMOST EVERYTHING REQUESTED IN THIS FILE ARE CONFIDENTIAL CREDENTIALS
+    ### IF YOU POST THIS FILE ONLINE (such as on GitHub) YOUR BOT COULD BE COMPROMISED
+    ###
+    ###
+    ### Use a proper text editor when editing this file, for example Sublime.
+    ### Do not use tab characters in this file, use plain spaces.
+    ###
+    ### Keep at least one space after a colon, like so:
+    ###
+    ###   key: value
+    ###
+    ###
+    ### Never edit or add a value to lines that have no default value, like:
+    ###
+    ###   credentials:
+    ###
+    ### Just leave them be. A default value may be an empty string like so: ""
+    ###
+    ###
+    ### You can wrap most values into quotation marks, except numbers and booleans:
+    ###
+    ###   someUrl: "http://example.com"
+    ###   someToken: "123.qwe.456[DFG="
+    ###   somePortNumber: 22
+    ###   useSomeFeature: true
+    ###
+    ###
+    ### You can have a list of things like this:
+    ###
+    ###   listOfStrings: ["string1", "string2", "string3"]
+    ###
+    ### or like this:
+    ###
+    ###   listOfStrings:
+    ###     - "string1"
+    ###     - "string2"
+    ###     - "string3"
+    ###
+    ###
+    ### More information on correctly formatting yaml files: http://www.yaml.org/start.html
+
+    security:
+      admins:
+      # Set a name and a pass. These have to be the same as set up in the fredboat.yaml
+      # Do not leave any of them blank or empty.
+      - name: ""
+        pass: ""
+
+    whitelist:
+      userIds:                   # a list of discord user ids that shall never be ratelimited or blacklisted
+      - 81011298891993088
+      - 166604053629894657
+
+    spring:
+      main:
+        banner-mode: log
+      output:
+        ansi:
+          enabled: detect                # for developers: setting this to "always" will force colored logs in your console
+
+    server:
+      port: 4269                         # port of the backend
+
+    sentry:
+      dsn: ""
+
+    # If you are using docker to host the whole FredBoat, you can ignore all database settings below this line.
+    database:
+      main:
+        # FredBoat was written to work with PostgreSQL.
+        # If you are running with docker-compose then you don't need to change the jdbcUrl here.
+        # In PostgreSQL, role means user and vice versa. Keep that in mind when reading the following help and the provided links.
+        # If you are running your own PostgreSQL database, you will need to provide a role and a database belonging to that role.
+        # The role needs at least the permission to log in.
+        # All postgres databases used by FredBoat are required to have the Hstore extension enabled.
+        # Learn more about roles here: https://www.postgresql.org/docs/10/static/database-roles.html
+        # Learn more about creating databases here: https://www.postgresql.org/docs/10/static/manage-ag-createdb.html
+        # Learn more about the postgres jdbc url here: https://jdbc.postgresql.org/documentation/head/connect.html
+        # Learn more about creating extensions here: https://www.postgresql.org/docs/current/static/sql-createextension.html
+        # Example jdbc: "jdbc:postgresql://localhost:5432/fredboat?user=fredboat&password=youshallnotpass"
+        jdbcUrl: "jdbc:postgresql://db:5432/fredboat?user=fredboat&password=youshallnotpass"
+
+      cache:
+        # Database for caching things, see config of main database above for details about the individual values.
+        # If you are running with docker-compose then you don't need to change the cache jdbcUrl here.
+        # The main and cache databases can be two databases inside a single postgres instance.
+        # They CANNOT be the same database due to the way flyway migrations work.
+        # The main benefit is that you don't have to backup/migrate the cache database, it can just be dropped/recreated
+        # If you do not provide a jdbc url for the cache database, FredBoat will still work (most likely), but may have a degraded
+        # performance, especially in high usage environments and when using Spotify playlists.
+        jdbcUrl: ""
+
+    # tune these according to your needs, or just leave them as is.
+    logging:
+      file:
+        max-history: 30
+        max-size: 1GB
+      path: ./logs/
+
+      level:
+        root: INFO
+        fredboat: DEBUG
+        com.fredboat: DEBUG
+
+    docs:
+      open: false               # Open the documentation endpoints for the public, and disable certain security features.
+      # DO NOT OPEN these on a production system.
+      host: ""                  # Reference: https://swagger.io/docs/specification/2-0/api-host-and-base-path/
+      basePath: ""              # Tell swagger where to find this Quarterdeck for Try out queries
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2020-04-25T21:58:07Z"
+  managedFields:
+  - apiVersion: v1
+    manager: kubectl
+    operation: Update
+    time: "2020-04-25T21:58:07Z"
+  name: fredboat-quarterdeck-yml
+  resourceVersion: "48642"
+  selfLink: /api/v1/namespaces/default/configmaps/fredboat-quarterdeck-yml
+  uid: 7377c525-ed29-402d-a429-ee7dcf5ba888
