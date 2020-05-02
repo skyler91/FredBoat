@@ -167,7 +167,7 @@ class SimpleTrackProvider : AbstractTrackProvider() {
         var i = 0
         val result = ArrayList<AudioTrackContext>()
         for (atc in asListOrdered) {
-            if (i in startIndex..(endIndex - 1))
+            if (i in startIndex until endIndex)
                 result.add(atc)
             i++
             if (i >= endIndex) break//abort early if we're done
