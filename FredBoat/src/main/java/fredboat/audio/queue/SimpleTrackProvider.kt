@@ -26,20 +26,13 @@
 package fredboat.audio.queue
 
 import fredboat.definitions.RepeatMode
-import fredboat.event.MessageEventHandler
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.util.*
-import java.util.concurrent.ConcurrentLinkedDeque
 
 class SimpleTrackProvider : AbstractTrackProvider() {
     private val queue = LinkedList<AudioTrackContext>()
     private var lastTrack: AudioTrackContext? = null
     private var cachedShuffledQueue: List<AudioTrackContext> = ArrayList()
     private var shouldUpdateShuffledQueue = true
-    companion object {
-        private val log: Logger = LoggerFactory.getLogger(SimpleTrackProvider::class.java)
-    }
 
     /**this override is needed because, related to the repeat all mode, turning shuffle off, skipping a track, turning shuffle
      *   on will cause an incorrect playlist to show with the list command and may lead to a bug of an
@@ -209,7 +202,6 @@ class SimpleTrackProvider : AbstractTrackProvider() {
 
     override fun add(track: AudioTrackContext) {
         shouldUpdateShuffledQueue = true
-        log.info("User " + track.member.name +" adding " + track.track.info.title + " to queue")
 
         synchronized(this)
         {
@@ -225,22 +217,18 @@ class SimpleTrackProvider : AbstractTrackProvider() {
         // Include the current playing track
         if (lastTrack != null)
         {
-            log.info("Added current track (" + lastTrack!!.track.info.title + ") by user " + lastTrack!!.member.user.name)
             trackCount[lastTrack!!.member.user.id] = (trackCount[lastTrack!!.member.user.id]?: 0) + 1
         }
         for (insertionIndex in 0 until queue.size)
         {
             val owner = queue[insertionIndex].member.user.id
             trackCount[owner] = (trackCount[owner] ?: 0) + 1
-            log.info("Setting user " + queue[insertionIndex].member.user.name + " track count to " + trackCount[owner].toString())
             if (owner != insertionOwner && trackCount[owner] ?: 0 > trackCount[insertionOwner] ?: 0)
             {
-                log.info("Breaking for loop (ownerCount=" + trackCount[owner].toString() + " insertionOwnerCount=" + trackCount[insertionOwner].toString() + ")")
                 return insertionIndex
             }
         }
 
-        log.info("Added to end of queue")
         return queue.size
     }
 
