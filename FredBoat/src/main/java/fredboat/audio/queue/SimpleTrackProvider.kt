@@ -213,7 +213,7 @@ class SimpleTrackProvider : AbstractTrackProvider() {
     {
         var trackCount = HashMap<Long, Int>()
         val insertionOwner = track.member.user.id
-        trackCount[insertionOwner] = 0
+        trackCount[insertionOwner] = 1
         // Include the current playing track
         if (lastTrack != null)
         {
