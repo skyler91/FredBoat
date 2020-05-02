@@ -89,12 +89,10 @@ class CommandContextParser(
         val mentionMatcher = MENTION_PREFIX.matcher(content)
         // either starts with a mention of us
         val botId = selfUser.idString
-        log.info("Skyler: parse got botId")
         if (mentionMatcher.find() && mentionMatcher.group(2) == botId) {
             input = mentionMatcher.group(3).trim { it <= ' ' }
             isMention = true
         } else {
-            log.info("Skyler: parse checking prefix")
             val prefix = PrefixCommand.giefPrefix(event.guild)
             val defaultPrefix = appConfig.prefix
             if (content.startsWith(prefix)) {
@@ -116,7 +114,6 @@ class CommandContextParser(
                 }
             }
         }// or starts with a custom/default prefix
-        log.info("Skyler: parse trimming input")
         input = input.trim { it <= ' ' }// eliminate possible whitespace between the mention/prefix and the rest of the input
         if (input.isEmpty()) {
             if (isMention) { //just a mention and nothing else? trigger the prefix command
@@ -134,7 +131,6 @@ class CommandContextParser(
 
         val commandTrigger = args[0]
 
-        log.info("Skyler: parse finding command...2")
         val command = CommandRegistry.findCommand(commandTrigger.toLowerCase())
         if (command == null) {
             log.info("Unknown command:\t{}", commandTrigger)
@@ -143,7 +139,6 @@ class CommandContextParser(
             val guild = getGuildMono(event.guild, textChannelInvoked = event.channel).retry(1).awaitFirstOrNull()
                     ?: throw RuntimeException("Guild ${event.guild} doesn't seem to exist")
             val channel = guild.getTextChannel(event.channel) ?: throw RuntimeException("Channel was sent in null channel")
-            log.info("Skyler: parse getting event author (" + event.author.toString()+ ")")
             var authorId = event.author
             // TODO: Pull this value from config file!!
             if (event.fromBot && appConfig.allowedBots.contains(event.author))
@@ -159,9 +154,7 @@ class CommandContextParser(
                     log.error("Bot message did not contain a valid user id")
                 }
             }
-            log.info("Skyler: parse checking guild membership...")
             val member = guild.getMember(authorId) ?: throw RuntimeException("Unknown message author")
-            log.info("Skyler: parse returning CommandContext")
 
             return CommandContext(
                     guild,

@@ -26,15 +26,20 @@
 package fredboat.audio.queue
 
 import fredboat.definitions.RepeatMode
+import fredboat.event.MessageEventHandler
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
 
 class SimpleTrackProvider : AbstractTrackProvider() {
-
-    private val queue = ConcurrentLinkedDeque<AudioTrackContext>()
+    private val queue = LinkedList<AudioTrackContext>()
     private var lastTrack: AudioTrackContext? = null
     private var cachedShuffledQueue: List<AudioTrackContext> = ArrayList()
     private var shouldUpdateShuffledQueue = true
+    companion object {
+        private val log: Logger = LoggerFactory.getLogger(SimpleTrackProvider::class.java)
+    }
 
     /**this override is needed because, related to the repeat all mode, turning shuffle off, skipping a track, turning shuffle
      *   on will cause an incorrect playlist to show with the list command and may lead to a bug of an
@@ -45,7 +50,10 @@ class SimpleTrackProvider : AbstractTrackProvider() {
             super.isShuffle = shuffle
             if (shuffle) {
                 shouldUpdateShuffledQueue = true
-                queue.forEach { it.isPriority = false} // reset all priority tracks
+                synchronized(this)
+                {
+                    queue.forEach { it.isPriority = false } // reset all priority tracks
+                }
             }
         }
 
@@ -100,7 +108,10 @@ class SimpleTrackProvider : AbstractTrackProvider() {
                 clone.rand = Integer.MAX_VALUE //put it at the back of the shuffled queue
                 shouldUpdateShuffledQueue = true
             }
-            queue.add(clone)
+            synchronized(this)
+            {
+                queue.add(clone)
+            }
         }
         if (isShuffle) {
             val list = asListOrdered
@@ -111,16 +122,22 @@ class SimpleTrackProvider : AbstractTrackProvider() {
 
             shouldUpdateShuffledQueue = true
             lastTrack = list[0]
-            queue.remove(lastTrack)
+            synchronized(this)
+            {
+                lastTrack?.let{ queue.remove(it) }
+            }
             return lastTrack
         } else {
-            lastTrack = queue.poll()
+            synchronized(this)
+            {
+                lastTrack = queue.poll()
+            }
             return lastTrack
         }
     }
 
     override fun remove(atc: AudioTrackContext): Boolean {
-        return if (queue.remove(atc)) {
+        return if (synchronized(this) {queue.remove(atc)}) {
             shouldUpdateShuffledQueue = true
             true
         } else {
@@ -129,13 +146,13 @@ class SimpleTrackProvider : AbstractTrackProvider() {
     }
 
     override fun removeAll(tracks: Collection<AudioTrackContext>) {
-        if (queue.removeAll(tracks)) {
+        if (synchronized(this) {queue.removeAll(tracks) }) {
             shouldUpdateShuffledQueue = true
         }
     }
 
     override fun removeAllById(trackIds: Collection<Long>) {
-        queue.removeIf { audioTrackContext -> trackIds.contains(audioTrackContext.trackId) }
+        synchronized(this) { queue.removeIf { audioTrackContext -> trackIds.contains(audioTrackContext.trackId) } }
         shouldUpdateShuffledQueue = true
     }
 
@@ -173,9 +190,12 @@ class SimpleTrackProvider : AbstractTrackProvider() {
 
     @Synchronized
     override fun reshuffle() {
-        queue.forEach {
-            it.randomize()
-            it.isPriority = false
+        synchronized(this)
+        {
+            queue.forEach {
+                it.randomize()
+                it.isPriority = false
+            }
         }
         shouldUpdateShuffledQueue = true
     }
@@ -189,39 +209,87 @@ class SimpleTrackProvider : AbstractTrackProvider() {
 
     override fun add(track: AudioTrackContext) {
         shouldUpdateShuffledQueue = true
-        queue.add(track)
+        log.info("User " + track.member.name +" adding " + track.track.info.title + " to queue")
+
+        synchronized(this)
+        {
+            queue.add(findInsertionPoint(track), track)
+        }
+    }
+
+    private fun findInsertionPoint(track : AudioTrackContext) : Int
+    {
+        var trackCount = HashMap<Long, Int>()
+        val insertionOwner = track.member.user.id
+        trackCount[insertionOwner] = 0
+        // Include the current playing track
+        if (lastTrack != null)
+        {
+            log.info("Added current track (" + lastTrack!!.track.info.title + ") by user " + lastTrack!!.member.user.name)
+            trackCount[lastTrack!!.member.user.id] = (trackCount[lastTrack!!.member.user.id]?: 0) + 1
+        }
+        for (insertionIndex in 0 until queue.size)
+        {
+            val owner = queue[insertionIndex].member.user.id
+            trackCount[owner] = (trackCount[owner] ?: 0) + 1
+            log.info("Setting user " + queue[insertionIndex].member.user.name + " track count to " + trackCount[owner].toString())
+            if (owner != insertionOwner && trackCount[owner] ?: 0 > trackCount[insertionOwner] ?: 0)
+            {
+                log.info("Breaking for loop (ownerCount=" + trackCount[owner].toString() + " insertionOwnerCount=" + trackCount[insertionOwner].toString() + ")")
+                return insertionIndex
+            }
+        }
+
+        log.info("Added to end of queue")
+        return queue.size
     }
 
     override fun addAll(tracks: Collection<AudioTrackContext>) {
         shouldUpdateShuffledQueue = true
-        queue.addAll(tracks)
+        synchronized(this)
+        {
+            queue.addAll(tracks)
+        }
     }
 
     override fun addFirst(track: AudioTrackContext) {
         shouldUpdateShuffledQueue = true
         track.rand = Integer.MIN_VALUE
-        queue.addFirst(track)
+        synchronized(this)
+        {
+            queue.addFirst(track)
+        }
     }
 
     override fun addAllFirst(tracks: Collection<AudioTrackContext>) {
         shouldUpdateShuffledQueue = true
         tracks.reversed().forEach {
             it.rand = Integer.MIN_VALUE
-            queue.addFirst(it) }
+            synchronized(this)
+            {
+                queue.addFirst(it)
+            }
+        }
     }
 
     override fun clear() {
         lastTrack = null
         shouldUpdateShuffledQueue = true
-        queue.clear()
+        synchronized(this)
+        {
+            queue.clear()
+        }
     }
 
     override val durationMillis: Long
         get() {
             var duration: Long = 0
-            for (atc in queue) {
-                if (!atc.track.info.isStream) {
-                    duration += atc.effectiveDuration
+            synchronized(this)
+            {
+                for (atc in queue) {
+                    if (!atc.track.info.isStream) {
+                        duration += atc.effectiveDuration
+                    }
                 }
             }
             return duration
@@ -229,9 +297,12 @@ class SimpleTrackProvider : AbstractTrackProvider() {
 
     override fun streamsCount(): Int {
         var streams = 0
-        for (atc in queue) {
-            if (atc.track.info.isStream) {
-                streams++
+        synchronized(this)
+        {
+            for (atc in queue) {
+                if (atc.track.info.isStream) {
+                    streams++
+                }
             }
         }
         return streams
