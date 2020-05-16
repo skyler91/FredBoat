@@ -126,6 +126,10 @@ credentials:
   imgurClientId:  ""
 
 
+  # Used by ;;export command. Only set this if you have a https://wastebin.party account.
+  wastebinUser:     ""
+  wastebinPass:     ""
+
   # Used to retrieve Spotify playlists
   # Get them from here: https://developer.spotify.com/my-applications
   spotifyId:      ""
