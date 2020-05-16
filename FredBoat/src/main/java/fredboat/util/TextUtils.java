@@ -163,6 +163,10 @@ public class TextUtils {
                 Optional.of(creds.getWastebinUser()), Optional.of(creds.getWastebinPass()));
     }
 
+    private static CompletionStage<String> postToHastebin(String body) {
+        return postToHasteBasedService("https://hastebin.com/documents", body, Optional.of(""), Optional.of(""));
+    }
+
     /**
      * This method will call all available paste services to attempt to upload the body, and take care of logging any
      * issues with those underlying paste services, callers only have to handle success or failure (the latter
@@ -176,11 +180,20 @@ public class TextUtils {
         return postToWastebin(body)
                 .thenApply(key -> Optional.of("https://wastebin.party/" + key))
                 .exceptionally(t -> {
-                    log.error("Could not post to wastebin", t);
+                    log.info("Could not post to wastebin", t);
                     return Optional.empty();
                 })
                 .thenCompose(url -> {
-                    return CompletableFuture.completedFuture(url);
+                    if (!url.isPresent()) {
+                        return postToHastebin(body)
+                            .thenApply(key -> Optional.of("https://hastebin.com/" + key))
+                            .exceptionally(t -> {
+                                log.error("Could not post to hastebin either", t);
+                                return Optional.empty();
+                            });
+                    } else {
+                        return CompletableFuture.completedFuture(url);
+                    }
                 });
     }
 
