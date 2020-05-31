@@ -226,7 +226,7 @@ class AudioPlayerManagerConfiguration {
                     .setCookieSpec(CookieSpecs.IGNORE_COOKIES)
                     .build()
         }
-        youtubeAudioSourceManager.setPlaylistPageCount(3)
+        youtubeAudioSourceManager.setPlaylistPageCount(5)
         return youtubeAudioSourceManager
     }
 
