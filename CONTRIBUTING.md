@@ -68,12 +68,12 @@ We skip the tests because they are more meant to be run on the CI. Your new .jar
 
 ### Building a Docker image
 The project structure does not work particularly well for Docker. To build a custom docker image, set up a directory with these four files:
-1. The `Dockerfile`
+1. The `Dockerfile` (copy from `<git>/FredBoat/Dockerfile`)
 2. Your new `FredBoat.jar` (see above)
 2. A default `fredboat.yml`, which is usually overriden
 3. A default `common.yml`, which is usually overriden
 
-Then run the command `docker build -t fredboat/fredboat .` Your image will be named `fredboat/fredboat:latest`.
+Then run the command `docker build -t fredboat/fredboat .` Your image will be named `fredboat/fredboat:latest`, and this will be what you put in your `docker-compose.yml` if using docker-compose.
 
 Alternatively, you can add your new jar file to an existing image by using a volume.
 
