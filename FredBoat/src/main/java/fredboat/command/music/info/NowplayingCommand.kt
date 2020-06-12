@@ -68,7 +68,6 @@ class NowplayingCommand(private val youtubeAPI: YoutubeAPI, name: String, vararg
             at is SoundCloudAudioTrack -> getSoundcloudEmbed(atc, player, at)
             at is BandcampAudioTrack -> getBandcampResponse(atc, player, at)
             at is TwitchStreamAudioTrack -> getTwitchEmbed(atc, at)
-            at is HttpAudioTrack && at.getIdentifier().contains("gensokyoradio.net") -> getGensokyoRadioEmbed(context)
             at is HttpAudioTrack -> getHttpEmbed(atc, player, at)
             //at is BeamAudioTrack -> embed = getBeamEmbed(atc, at)
             else -> getDefaultEmbed(atc, player, at)
@@ -196,46 +195,5 @@ class NowplayingCommand(private val youtubeAPI: YoutubeAPI, name: String, vararg
 
         private const val GR_PLACEHOLDER_IMG = "https://cdn.discordapp.com/attachments/240116420946427905/" +
                 "373019550725177344/gr-logo-placeholder.png"
-
-        internal fun getGensokyoRadioEmbed(context: Context) = embed {
-            val data = XML.toJSONObject(BotController.HTTP.get("https://gensokyoradio.net/xml/").asString())
-                    .getJSONObject("GENSOKYORADIODATA")
-            val misc = data.getJSONObject("MISC")
-            val songInfo = data.getJSONObject("SONGINFO")
-
-            title = songInfo.getString("TITLE")
-            image = if (misc.getString("ALBUMART") == "")
-                GR_PLACEHOLDER_IMG else
-                "https://gensokyoradio.net/images/albums/original/" + misc.getString("ALBUMART")
-            url = if (misc.getString("CIRCLELINK") == "")
-                "https://gensokyoradio.net/" else
-                misc.getString("CIRCLELINK")
-            color = Color(66, 16, 80).rgb
-            field(context.i18n("album"), songInfo.getString("ALBUM"), true)
-            field(context.i18n("artist"), songInfo.getString("ARTIST"), true)
-            field(context.i18n("circle"), songInfo.getString("CIRCLE"), true)
-
-            field {
-                title = context.i18n("rating")
-                body = if (misc.getInt("TIMESRATED") == 0)
-                    context.i18n("noneYet") else
-                    context.i18nFormat(
-                            "npRatingRange",
-                            misc.getFloat("RATING").toDecimalString(2),
-                            misc.getInt("TIMESRATED")
-                    )
-                inline = true
-            }
-
-            if (data.getJSONObject("SONGINFO").optInt("YEAR") != 0) {
-                field(context.i18n("year"), songInfo.getInt("YEAR").toString(), true)
-            }
-            field(context.i18n("listeners"), data.getJSONObject("SERVERINFO").getInt("LISTENERS").toString(), true)
-            footer {
-                text = "Content provided by gensokyoradio.net." +
-                        "\nThe GR logo is a trademark of Gensokyo Radio." +
-                        "\nGensokyo Radio is © LunarSpotlight."
-            }
-        }
     }
 }
