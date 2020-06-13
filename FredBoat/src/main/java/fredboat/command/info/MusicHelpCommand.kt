@@ -204,7 +204,6 @@ class MusicHelpCommand(name: String, vararg aliases: String) : Command(name, *al
                     HistoryCommand::class.java,
                     ExportCommand::class.java,
                     SelectCommand::class.java,
-                    GensokyoRadioCommand::class.java,
                     VolumeCommand::class.java,
                     DestroyCommand::class.java
             )
