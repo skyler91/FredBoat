@@ -100,6 +100,7 @@ class PlayerRegistry(private val musicTextChannelProvider: MusicTextChannelProvi
                 log.warn("Attempt to destroy already destroyed player." +
                         " This should not happen. Removing without re-destroying...")
             } else {
+                log.info("Destroying player for guild $guildId")
                 player.destroy()
             }
             registry.remove(guildId)
