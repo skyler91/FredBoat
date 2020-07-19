@@ -11,8 +11,8 @@ import org.springframework.context.annotation.Configuration
 
 
 private val log: Logger = LoggerFactory.getLogger(ApplicationInfo::class.java)
-private const val APP_URL = "https://discordapp.com/api/v6/oauth2/applications/@me"
-private const val USER_URL = "https://discordapp.com/api/v6/users/@me"
+private const val APP_URL = "https://discord.com/api/v6/oauth2/applications/@me"
+private const val USER_URL = "https://discord.com/api/v6/users/@me"
 
 @Configuration
 class DiscordInfoProvider{
