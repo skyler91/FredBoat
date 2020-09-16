@@ -51,7 +51,7 @@ public class InviteCommand extends JCommand implements IInfoCommand {
         } else if (botId == BotConstants.PATRON_BOT_ID) {
             invite = BotConstants.DOCS_DONATE_URL;
         } else {
-            invite = "https://discordapp.com/oauth2/authorize?client_id=" + botId + "&scope=bot";
+            invite = "https://discord.com/oauth2/authorize?client_id=" + botId + "&scope=bot";
         }
         Member self = context.getSelfMember();
         String header = context.i18nFormat("invite", TextUtils.escapeAndDefuse(self.getName()));

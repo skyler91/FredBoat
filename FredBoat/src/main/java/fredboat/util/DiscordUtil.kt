@@ -58,6 +58,6 @@ object DiscordUtil {
                 || botId == BotConstants.MAIN_BOT_ID)
     }
 
-    //https://discordapp.com/developers/docs/topics/gateway#sharding
+    //https://discord.com/developers/docs/topics/gateway#sharding
     fun getShardId(guildId: Long, appConfig: AppConfig) = ((guildId shr 22) % appConfig.shardCount).toInt()
 }

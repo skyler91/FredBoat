@@ -54,6 +54,29 @@ This project makes heavy use of  [Kotlin coroutines](https://kotlinlang.org/docs
 
 We will still accept Java contributions, but many APIs were made with Kotlin syntax in mind.
 
+### Building the project
+FredBoat uses Gradle to build the project. FredBoat comes with two gradle wrappers that helps with running Gradle, even if you haven't already installed it. Running it is simple:
+
+```bash
+./gradlew clean build -x test
+
+# Or if you use Windows
+gradlew.bat clean build -x test
+```
+
+We skip the tests because they are more meant to be run on the CI. Your new .jar should be at `<git>/FredBoat/FredBoat.jar`
+
+### Building a Docker image
+The project structure does not work particularly well for Docker. To build a custom docker image, set up a directory with these four files:
+1. The `Dockerfile` (copy from `<git>/FredBoat/Dockerfile`)
+2. Your new `FredBoat.jar` (see above)
+2. A default `fredboat.yml`, which is usually overriden
+3. A default `common.yml`, which is usually overriden
+
+Then run the command `docker build -t fredboat/fredboat .` Your image will be named `fredboat/fredboat:latest`, and this will be what you put in your `docker-compose.yml` if using docker-compose.
+
+Alternatively, you can add your new jar file to an existing image by using a volume.
+
 ## Code conventions
 Code is indented with 4 spaces and without brackets on newlines. Please use the logging system (SLF4J) instead of `System.out` or `System.err`.
 

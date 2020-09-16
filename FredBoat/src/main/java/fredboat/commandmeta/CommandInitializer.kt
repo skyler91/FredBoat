@@ -240,7 +240,6 @@ class CommandInitializer(cacheMetrics: CacheMetricsCollector, weather: Weather, 
         musicModule.registerCommand(PlayCommand(playerLimiter, trackSearcher, videoSelectionCache,
                 listOf(SearchProvider.YOUTUBE, SearchProvider.SOUNDCLOUD),
                 "playnext", "playtop", "pn", isPriority = true))
-        musicModule.registerCommand(PlaySplitCommand(playerLimiter, "split"))
         musicModule.registerCommand(RepeatCommand("repeat", "rep", "loop"))
         musicModule.registerCommand(ReshuffleCommand("reshuffle", "resh"))
         musicModule.registerCommand(SelectCommand(videoSelectionCache, "select",
@@ -255,7 +254,8 @@ class CommandInitializer(cacheMetrics: CacheMetricsCollector, weather: Weather, 
 
         /* Info */
         musicModule.registerCommand(ExportCommand("export", "ex"))
-        musicModule.registerCommand(GensokyoRadioCommand("gensokyo", "gr", "gensokyoradio"))
+        musicModule.registerCommand(TextCommand("Ahoy, the Gensokyo command has been discontinued from FredBoat, but you can give the Gensokyo bot a try: https://gensokyobot.com/",
+        "gensokyo", "gr", "gensokyoradio"))
         musicModule.registerCommand(HistoryCommand("history", "hist", "h"))
         musicModule.registerCommand(ListCommand("list", "queue", "q", "l", "ls"))
         musicModule.registerCommand(NowplayingCommand(youtubeAPI, "nowplaying", "np"))
