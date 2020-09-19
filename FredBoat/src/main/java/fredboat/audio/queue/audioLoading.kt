@@ -27,7 +27,6 @@ package fredboat.audio.queue
 
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
-import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioTrack
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
@@ -38,17 +37,12 @@ import fredboat.audio.source.SpotifyPlaylistSourceManager
 import fredboat.feature.metrics.Metrics
 import fredboat.feature.togglz.FeatureFlags
 import fredboat.util.TextUtils
-import fredboat.util.extension.escapeAndDefuse
-import fredboat.util.localMessageBuilder
 import fredboat.util.ratelimit.Ratelimiter
 import fredboat.util.rest.YoutubeAPI
-import org.apache.commons.lang3.tuple.ImmutablePair
-import org.apache.commons.lang3.tuple.Pair
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.regex.Pattern
 
 class AudioLoader(private val ratelimiter: Ratelimiter, internal val trackProvider: ITrackProvider,
                   private val playerManager: AudioPlayerManager, internal val gplayer: GuildPlayer,
@@ -155,7 +149,7 @@ class AudioLoader(private val ratelimiter: Ratelimiter, internal val trackProvid
             if (th is FriendlyException) {
                 when {
                     th.severity == FriendlyException.Severity.COMMON ->
-                        ic.reply(ic.i18nFormat("loadErrorCommon", ic.identifier, th.message!!))
+                        ic.reply(ic.i18nFormat("loadErrorCommon", ic.identifier, th.message ?: "null"))
                     FeatureFlags.SHOW_YOUTUBE_RATELIMIT_WARNING.isActive -> {
                         val msg = "Error occurred when loading info for `${ic.identifier}`" +
                                 "\nThis may be YouTube blocking us. See <https://fredboat.com/docs/youtube-blockade>"
