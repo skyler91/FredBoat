@@ -31,6 +31,8 @@ import fredboat.feature.I18n
 import fredboat.main.Launcher
 import fredboat.sentinel.Member
 import fredboat.sentinel.TextChannel
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.util.concurrent.ThreadLocalRandom
 
 open class AudioTrackContext(val track: AudioTrack, val member: Member, priority: Boolean = false) : Comparable<AudioTrackContext> {
@@ -49,7 +51,17 @@ open class AudioTrackContext(val track: AudioTrack, val member: Member, priority
         get() = track.duration
 
     open val effectiveTitle: String
-        get() = track.info.title
+        get() = when {
+            track.info == null -> {
+                log.warn("Track {} had null track info", track.identifier)
+                track.identifier
+            }
+            track.info.title == null -> {
+                log.warn("Track {} had null title", track.identifier)
+                track.info.uri ?: track.identifier
+            }
+            else -> track.info.title
+        }
 
     open val startPosition: Long
         get() = 0
@@ -108,6 +120,10 @@ open class AudioTrackContext(val track: AudioTrack, val member: Member, priority
         var str = i18n(key)
         values.forEachIndexed { i, v -> str = str.replace("{$i}", v.toString()) }
         return str
+    }
+
+    companion object {
+        private val log: Logger = LoggerFactory.getLogger(AudioTrackContext::class.java)
     }
 
 
