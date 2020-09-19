@@ -39,7 +39,8 @@ bootJar {
 dependencies {
     compile project(':Shared')
     compile group: 'com.github.FredBoat.sentinel', name: 'sentinel-shared', version: sentinelVersion
-    compile group: 'com.sedmelluq', name: 'lavaplayer', version: lavaplayerVersion
+    //compile group: 'com.sedmelluq', name: 'lavaplayer', version: lavaplayerVersion
+    compile group: 'com.github.devoxin.lavaplayer', name: 'main', version: '70f53b91'
     compile group: 'com.sedmelluq', name: 'lavaplayer-ext-youtube-rotator', version: lavaplayerIpRotatorVersion
 
     if (System.getenv('dev') == 'true') {
