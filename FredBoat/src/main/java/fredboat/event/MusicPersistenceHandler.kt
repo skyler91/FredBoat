@@ -35,7 +35,6 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import fredboat.audio.player.MusicTextChannelProvider
 import fredboat.audio.player.PlayerRegistry
 import fredboat.audio.queue.AudioTrackContext
-import fredboat.audio.queue.SplitAudioTrackContext
 import fredboat.config.property.AppConfig
 import fredboat.config.property.Credentials
 import fredboat.definitions.RepeatMode
@@ -149,15 +148,6 @@ class MusicPersistenceHandler(private val playerRegistry: PlayerRegistry, privat
                             .put("message", Base64.encodeBase64String(baos.toByteArray()))
                             .put("user", atc.userId)
 
-                    if (atc is SplitAudioTrackContext) {
-                        val split = JSONObject()
-                        split.put("title", atc.effectiveTitle)
-                                .put("startPos", atc.startPosition)
-                                .put("endPos", atc.startPosition + atc.effectiveDuration)
-
-                        ident.put("split", split)
-                    }
-
                     identifiers.add(ident)
                 }
 
@@ -269,29 +259,12 @@ class MusicPersistenceHandler(private val playerRegistry: PlayerRegistry, privat
 
                     // Handle split tracks
                     val atc: AudioTrackContext
-                    val split = json.optJSONObject("split")
-                    if (split != null) {
-                        atc = SplitAudioTrackContext(at, member,
-                                split.getLong("startPos"),
-                                split.getLong("endPos"),
-                                split.getString("title")
-                        )
-                        at.position = split.getLong("startPos")
+                    atc = AudioTrackContext(at, member)
 
-                        if (isFirst[0]) {
-                            isFirst[0] = false
-                            if (data.has("position")) {
-                                at.position = split.getLong("startPos") + data.getLong("position")
-                            }
-                        }
-                    } else {
-                        atc = AudioTrackContext(at, member)
-
-                        if (isFirst[0]) {
-                            isFirst[0] = false
-                            if (data.has("position")) {
-                                at.position = data.getLong("position")
-                            }
+                    if (isFirst[0]) {
+                        isFirst[0] = false
+                        if (data.has("position")) {
+                            at.position = data.getLong("position")
                         }
                     }
 

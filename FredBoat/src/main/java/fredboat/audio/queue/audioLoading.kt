@@ -27,7 +27,6 @@ package fredboat.audio.queue
 
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
-import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioTrack
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
@@ -38,17 +37,12 @@ import fredboat.audio.source.SpotifyPlaylistSourceManager
 import fredboat.feature.metrics.Metrics
 import fredboat.feature.togglz.FeatureFlags
 import fredboat.util.TextUtils
-import fredboat.util.extension.escapeAndDefuse
-import fredboat.util.localMessageBuilder
 import fredboat.util.ratelimit.Ratelimiter
 import fredboat.util.rest.YoutubeAPI
-import org.apache.commons.lang3.tuple.ImmutablePair
-import org.apache.commons.lang3.tuple.Pair
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.regex.Pattern
 
 class AudioLoader(private val ratelimiter: Ratelimiter, internal val trackProvider: ITrackProvider,
                   private val playerManager: AudioPlayerManager, internal val gplayer: GuildPlayer,
@@ -61,7 +55,6 @@ class AudioLoader(private val ratelimiter: Ratelimiter, internal val trackProvid
         private val log = LoggerFactory.getLogger(AudioLoader::class.java)
 
         //Matches a timestamp and the description
-        internal val SPLIT_DESCRIPTION_PATTERN = Pattern.compile("(.*?)[( \\[]*((?:\\d?\\d:)?\\d?\\d:\\d\\d)[) \\]]*(.*)")
         private const val QUEUE_TRACK_LIMIT = 10000
     }
 
@@ -156,7 +149,7 @@ class AudioLoader(private val ratelimiter: Ratelimiter, internal val trackProvid
             if (th is FriendlyException) {
                 when {
                     th.severity == FriendlyException.Severity.COMMON ->
-                        ic.reply(ic.i18nFormat("loadErrorCommon", ic.identifier, th.message!!))
+                        ic.reply(ic.i18nFormat("loadErrorCommon", ic.identifier, th.message ?: "null"))
                     FeatureFlags.SHOW_YOUTUBE_RATELIMIT_WARNING.isActive -> {
                         val msg = "Error occurred when loading info for `${ic.identifier}`" +
                                 "\nThis may be YouTube blocking us. See <https://fredboat.com/docs/youtube-blockade>"
@@ -196,29 +189,24 @@ private class ResultHandler(val loader: AudioLoader, val context: IdentifierCont
     override fun trackLoaded(at: AudioTrack) {
         Metrics.tracksLoaded.inc()
         try {
-            if (context.isSplit) {
-                loadSplit(at, context)
+            if (!context.isQuiet) {
+                context.reply(if (loader.gplayer.isPlaying)
+                    context.i18nFormat(if (context.isPriority) "loadSingleTrackFirst" else "loadSingleTrack",
+                            TextUtils.escapeAndDefuse(at.info.title))
+                else
+                    context.i18nFormat("loadSingleTrackAndPlay", TextUtils.escapeAndDefuse(at.info.title))
+                )
             } else {
+                log.info("Quietly loaded " + at.identifier)
+            }
 
-                if (!context.isQuiet) {
-                    context.reply(if (loader.gplayer.isPlaying)
-                        context.i18nFormat(if (context.isPriority) "loadSingleTrackFirst" else "loadSingleTrack",
-                                TextUtils.escapeAndDefuse(at.info.title))
-                    else
-                        context.i18nFormat("loadSingleTrackAndPlay", TextUtils.escapeAndDefuse(at.info.title))
-                    )
-                } else {
-                    log.info("Quietly loaded " + at.identifier)
-                }
+            at.position = context.position
 
-                at.position = context.position
+            val atc = AudioTrackContext(at, context.member, context.isPriority)
+            if (context.isPriority) loader.trackProvider.addFirst(atc) else loader.trackProvider.add(atc)
 
-                val atc = AudioTrackContext(at, context.member, context.isPriority)
-                if (context.isPriority) loader.trackProvider.addFirst(atc) else loader.trackProvider.add(atc)
-
-                if (!loader.gplayer.isPaused) {
-                    loader.gplayer.play()
-                }
+            if (!loader.gplayer.isPaused) {
+                loader.gplayer.play()
             }
         } catch (th: Throwable) {
             loader.handleThrowable(context, th)
@@ -230,12 +218,6 @@ private class ResultHandler(val loader: AudioLoader, val context: IdentifierCont
     override fun playlistLoaded(ap: AudioPlaylist) {
         Metrics.tracksLoaded.inc((if (ap.tracks == null) 0 else ap.tracks.size).toDouble())
         try {
-            if (context.isSplit) {
-                context.reply(context.i18n("loadPlaySplitListFail"))
-                loader.loadNextAsync()
-                return
-            }
-
             val toAdd = ArrayList<AudioTrackContext>()
             for (at in ap.tracks) {
                 toAdd.add(AudioTrackContext(at, context.member, context.isPriority))
@@ -260,84 +242,5 @@ private class ResultHandler(val loader: AudioLoader, val context: IdentifierCont
         }
 
         loader.loadNextAsync()
-    }
-
-    private fun loadSplit(at: AudioTrack, ic: IdentifierContext) {
-        if (at !is YoutubeAudioTrack) {
-            ic.reply(ic.i18n("loadSplitNotYouTube"))
-            return
-        }
-
-        val yv = loader.youtubeAPI.getVideoFromID(at.identifier, true)
-        val desc = yv.description
-        val m = AudioLoader.SPLIT_DESCRIPTION_PATTERN.matcher(desc)
-
-        val pairs = ArrayList<Pair<Long, String>>()
-
-        while (m.find()) {
-            val timestamp: Long
-            try {
-                timestamp = TextUtils.parseTimeString(m.group(2))
-            } catch (e: NumberFormatException) {
-                continue
-            }
-
-            val title1 = m.group(1)
-            val title2 = m.group(3)
-
-            if (title1.length > title2.length) {
-                pairs.add(ImmutablePair(timestamp, title1))
-            } else {
-                pairs.add(ImmutablePair(timestamp, title2))
-            }
-        }
-
-        if (pairs.size < 2) {
-            ic.reply(ic.i18n("loadSplitNotResolves"))
-            return
-        }
-
-        val list = ArrayList<SplitAudioTrackContext>()
-
-        for ((i, pair) in pairs.withIndex()) {
-            val startPos: Long
-            val endPos: Long
-
-            if (i != pairs.size - 1) {
-                // Not last
-                startPos = pair.left
-                endPos = pairs[i + 1].left
-            } else {
-                // Last
-                startPos = pair.left
-                endPos = at.getDuration()
-            }
-
-            val newAt = at.makeClone()
-            newAt.position = startPos
-
-            val atc = SplitAudioTrackContext(newAt, context.member, startPos, endPos, pair.right)
-
-            list.add(atc)
-            loader.gplayer.queue(atc)
-        }
-
-        var mb = localMessageBuilder()
-                .append(ic.i18n("loadFollowingTracksAdded")).append("\n")
-        for (atc in list) {
-            mb.append("`[")
-                    .append(TextUtils.formatTime(atc.effectiveDuration))
-                    .append("]` ")
-                    .append(atc.effectiveTitle.escapeAndDefuse())
-                    .append("\n")
-        }
-
-        //This is pretty spammy .. let's use a shorter one
-        if (mb.length > 800) {
-            mb = localMessageBuilder()
-                    .append(ic.i18nFormat("loadPlaylistTooMany", list.size))
-        }
-
-        context.reply(mb.build())
     }
 }

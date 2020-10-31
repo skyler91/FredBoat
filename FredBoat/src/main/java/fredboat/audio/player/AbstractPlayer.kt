@@ -34,7 +34,6 @@ import com.sedmelluq.discord.lavaplayer.track.TrackMarker
 import fredboat.audio.lavalink.SentinelLavalink
 import fredboat.audio.queue.AudioTrackContext
 import fredboat.audio.queue.ITrackProvider
-import fredboat.audio.queue.SplitAudioTrackContext
 import fredboat.audio.queue.TrackEndMarkerHandler
 import fredboat.commandmeta.MessagingException
 import fredboat.sentinel.Guild
@@ -247,15 +246,6 @@ abstract class AbstractPlayer internal constructor(
         context = trackContext
         player.playTrack(trackContext.track)
         trackContext.track.position = trackContext.startPosition
-
-        if (trackContext is SplitAudioTrackContext) {
-            //Ensure we don't step over our bounds
-            log.info("Start: ${trackContext.startPosition} End: ${trackContext.startPosition + trackContext.effectiveDuration}")
-
-            trackContext.track.setMarker(
-                    TrackMarker(trackContext.startPosition + trackContext.effectiveDuration,
-                            TrackEndMarkerHandler(this, trackContext)))
-        }
 
         if (!silent && onPlayHook != null) onPlayHook!!.accept(trackContext)
     }

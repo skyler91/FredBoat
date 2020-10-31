@@ -214,21 +214,18 @@ class AudioPlayerManagerConfiguration {
     @Bean(destroyMethod = "")
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     fun youtubeAudioSourceManager(routePlanner: AbstractRoutePlanner?): YoutubeAudioSourceManager {
-        val youtubeAudioSourceManager = YoutubeAudioSourceManager()
-
         val youtube = YoutubeAudioSourceManager()
         if (routePlanner != null) {
             YoutubeIpRotator.setup(youtube, routePlanner)
         }
 
-        youtubeAudioSourceManager.configureRequests { config ->
+        youtube.configureRequests { config ->
             RequestConfig.copy(config)
                     .setCookieSpec(CookieSpecs.IGNORE_COOKIES)
                     .build()
         }
-        youtubeAudioSourceManager.setMixLoaderMaximumPoolSize(50)
-        youtubeAudioSourceManager.setPlaylistPageCount(3)
-        return youtubeAudioSourceManager
+        youtube.setPlaylistPageCount(5)
+        return youtube
     }
 
     @Bean(destroyMethod = "")

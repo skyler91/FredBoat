@@ -62,6 +62,7 @@ class GuildCacheInvalidationAgent(
         try {
             playerRegistry.destroyPlayer(guild)
             lavalink.getExistingLink(guild)?.destroy()
+            log.info("Unsubscribed from $guild")
         } catch (e: Exception) {
             log.error("Got exception when invaliding GuildPlayer and Link for {}", guild)
         }

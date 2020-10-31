@@ -6,6 +6,8 @@ import fredboat.db.api.GuildDataService
 import fredboat.feature.metrics.Metrics
 import fredboat.sentinel.Guild
 import fredboat.sentinel.TextChannel
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 import java.time.Duration
@@ -16,6 +18,8 @@ class GuildEventHandler(
         private val guildDataService: GuildDataService,
         private val playerRegistry: PlayerRegistry
 ) : SentinelEventHandler() {
+    private val log: Logger = LoggerFactory.getLogger(GuildEventHandler::class.java)
+
     override fun onGuildJoin(guild: Guild) {
         // Wait a few seconds to allow permissions to be set and applied and propagated
         val mono = Mono.create<Unit> {
@@ -44,7 +48,7 @@ class GuildEventHandler(
         var channel: TextChannel? = guild.getTextChannel(guild.id) //old public channel
         if (channel == null || !channel.canTalk()) {
             //find first channel that we can talk in
-            guild.textChannels.forEach { _, tc ->
+            guild.textChannels.forEach { (_, tc) ->
                 if (tc.canTalk()) {
                     channel = tc
                     return@forEach
@@ -54,7 +58,7 @@ class GuildEventHandler(
 
         //send actual hello message and persist on success
         channel?.send(HelloCommand.getHello(guild))
-                ?.doOnSuccess { guildDataService.transformGuildData(guild, { it.helloSent() }) }
+                ?.doOnSuccess { guildDataService.transformGuildData(guild) { it.helloSent() } }
                 ?.subscribe()
     }
 }

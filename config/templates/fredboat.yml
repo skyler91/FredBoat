@@ -127,6 +127,10 @@ credentials:
   imgurClientId:  ""
 
 
+  # Used by ;;export command. Only set this if you have a https://wastebin.party account.
+  wastebinUser:     ""
+  wastebinPass:     ""
+
   # Used to retrieve Spotify playlists
   # Get them from here: https://developer.spotify.com/my-applications
   spotifyId:      ""
@@ -144,8 +148,8 @@ credentials:
 
 event-logger:
   # Webhooks to Discord channels that will post some guild stats and shard status changes
-  # More information on webhooks: https://support.discordapp.com/hc/en-us/articles/228383668-Intro-to-Webhooks
-  # Example: "https://canary.discordapp.com/api/webhooks/1234567890/QWERTZUIOPasdfghjklYXCVBNM" (no, this one will not work)
+  # More information on webhooks: https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks
+  # Example: "https://canary.discord.com/api/webhooks/1234567890/QWERTZUIOPasdfghjklYXCVBNM" (no, this one will not work)
   eventLogWebhook:            "" # webhook url for connect / disconnect events
   eventLogInterval:           1  # interval at which connect / disconnect events are posted in minutes
   guildStatsWebhook:          "" # webhook url for guild stats
